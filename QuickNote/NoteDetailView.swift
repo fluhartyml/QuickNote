@@ -34,9 +34,10 @@ struct NoteDetailView: View {
                 }
 
                 // Body
-                TextField("Note", text: $note.body, axis: .vertical)
+                TextEditor(text: $note.body)
                     .font(.system(size: 18))
-                    .lineLimit(nil)
+                    .frame(minHeight: 200)
+                    .scrollContentBackground(.hidden)
                     .onChange(of: note.body) {
                         note.dateModified = .now
                     }
