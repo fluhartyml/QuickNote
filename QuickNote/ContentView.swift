@@ -29,7 +29,7 @@ struct ContentView: View {
                                 NoteDetailView(note: note)
                             } label: {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(note.dateCreated, format: .dateTime.year().month(.abbreviated).day().hour().minute().second())
+                                    Text(quickNoteDateFormatter.string(from: note.dateCreated))
                                         .font(.system(size: 20))
                                         .foregroundStyle(.secondary)
                                     Text(note.title.isEmpty ? "Untitled" : note.title)
@@ -88,6 +88,13 @@ struct ContentView: View {
         }
     }
 }
+
+let quickNoteDateFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.dateFormat = "yyyy MMM dd HHmmss"
+    f.locale = Locale(identifier: "en_US_POSIX")
+    return f
+}()
 
 #Preview {
     ContentView()

@@ -44,7 +44,7 @@ struct NoteDetailView: View {
                 Spacer()
 
                 // Date Modified
-                Text("Modified: \(note.dateModified, format: .dateTime.year().month(.abbreviated).day().hour().minute().second())")
+                Text("Modified: \(quickNoteDateFormatter.string(from: note.dateModified))")
                     .font(.system(size: 18, weight: .light).italic())
                     .foregroundStyle(.tertiary)
             }
@@ -58,13 +58,10 @@ struct NoteDetailView: View {
     }
 
     private var shareText: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy MMM dd HHmmss"
-
         var text = note.title
-        text += "\n\(formatter.string(from: note.dateCreated))"
+        text += "\n\(quickNoteDateFormatter.string(from: note.dateCreated))"
         text += "\n\n\(note.body)"
-        text += "\n\nModified: \(formatter.string(from: note.dateModified))"
+        text += "\n\nModified: \(quickNoteDateFormatter.string(from: note.dateModified))"
         return text
     }
 }
