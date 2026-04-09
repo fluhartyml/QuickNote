@@ -10,51 +10,80 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @Query(sort: \Note.dateCreated, order: .reverse) private var notes: [Note]
 
     var body: some View {
         NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+            Group {
+                if notes.isEmpty {
+                    ContentUnavailableView(
+                        "No Notes",
+                        systemImage: "note.text",
+                        description: Text("Press + to enter your first note")
+                    )
+                    .font(.system(size: 18))
+                } else {
+                    List {
+                        ForEach(notes) { note in
+                            NavigationLink {
+                                NoteDetailView(note: note)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(note.dateCreated, format: .dateTime.year().month(.abbreviated).day().hour().minute().second())
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(.secondary)
+                                    Text(note.title.isEmpty ? "Untitled" : note.title)
+                                        .font(.system(size: 18, weight: .bold))
+                                        .lineLimit(1)
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                        .onDelete(perform: deleteNotes)
                     }
                 }
-                .onDelete(perform: deleteItems)
             }
-#if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-#endif
-            .toolbar {
+            .navigationTitle("QuickNote")
 #if os(iOS)
+            .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     EditButton()
+                        .font(.system(size: 18))
                 }
-#endif
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: addNote) {
+                        Label("Add Note", systemImage: "plus")
+                    }
+                    .font(.system(size: 18))
+                }
+            }
+#else
+            .toolbar {
                 ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                    Button(action: addNote) {
+                        Label("Add Note", systemImage: "plus")
                     }
                 }
             }
+#endif
         } detail: {
-            Text("Select an item")
+            Text("Select a note")
+                .font(.system(size: 18))
+                .foregroundStyle(.secondary)
         }
     }
 
-    private func addItem() {
+    private func addNote() {
         withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
+            let note = Note()
+            modelContext.insert(note)
         }
     }
 
-    private func deleteItems(offsets: IndexSet) {
+    private func deleteNotes(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
-                modelContext.delete(items[index])
+                modelContext.delete(notes[index])
             }
         }
     }
@@ -62,5 +91,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: Note.self, inMemory: true)
 }
