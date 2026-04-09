@@ -11,6 +11,7 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Note.dateCreated, order: .reverse) private var notes: [Note]
+    @State private var selectedNote: Note?
 
     var body: some View {
         NavigationSplitView {
@@ -23,11 +24,9 @@ struct ContentView: View {
                     )
                     .font(.system(size: 18))
                 } else {
-                    List {
+                    List(selection: $selectedNote) {
                         ForEach(notes) { note in
-                            NavigationLink {
-                                NoteDetailView(note: note)
-                            } label: {
+                            NavigationLink(value: note) {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(quickNoteDateFormatter.string(from: note.dateCreated).uppercased())
                                         .font(.system(size: 20))
@@ -68,9 +67,13 @@ struct ContentView: View {
             }
 #endif
         } detail: {
-            Text("Select a note")
-                .font(.system(size: 18))
-                .foregroundStyle(.secondary)
+            if let selectedNote {
+                NoteDetailView(note: selectedNote)
+            } else {
+                Text("Select a note")
+                    .font(.system(size: 18))
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -78,6 +81,7 @@ struct ContentView: View {
         withAnimation {
             let note = Note()
             modelContext.insert(note)
+            selectedNote = note
         }
     }
 
