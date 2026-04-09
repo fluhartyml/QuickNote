@@ -29,7 +29,7 @@ struct ContentView: View {
                                 NoteDetailView(note: note)
                             } label: {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(quickNoteDateFormatter.string(from: note.dateCreated))
+                                    Text(quickNoteDateFormatter.string(from: note.dateCreated).uppercased())
                                         .font(.system(size: 20))
                                         .foregroundStyle(.secondary)
                                     Text(note.title.isEmpty ? "Untitled" : note.title)
@@ -44,6 +44,7 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("QuickNote")
+            .navigationBarTitleDisplayMode(.inline)
 #if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
