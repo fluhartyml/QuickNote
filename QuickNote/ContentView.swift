@@ -44,10 +44,10 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("QuickNote")
-            .navigationSplitViewColumnWidth(min: 280, ideal: 320)
+            .navigationSplitViewColumnWidth(min: 350, ideal: 380)
 #if os(iOS)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     EditButton()
                         .font(.system(size: 18))
                 }
