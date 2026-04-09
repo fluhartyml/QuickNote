@@ -92,7 +92,7 @@ struct ContentView: View {
 
 let quickNoteDateFormatter: DateFormatter = {
     let f = DateFormatter()
-    f.dateFormat = "yyyy MMM dd HHmmss"
+    f.dateFormat = "yyyy MMM dd HHmm"
     f.locale = Locale(identifier: "en_US_POSIX")
     return f
 }()

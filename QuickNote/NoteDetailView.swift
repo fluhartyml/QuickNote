@@ -44,7 +44,7 @@ struct NoteDetailView: View {
                 Spacer()
 
                 // Date Modified
-                Text("Modified: \(quickNoteDateFormatter.string(from: note.dateModified))")
+                Text("Modified: \(quickNoteDateFormatter.string(from: note.dateModified).uppercased())")
                     .font(.system(size: 18, weight: .light).italic())
                     .foregroundStyle(.tertiary)
             }
@@ -59,9 +59,9 @@ struct NoteDetailView: View {
 
     private var shareText: String {
         var text = note.title
-        text += "\n\(quickNoteDateFormatter.string(from: note.dateCreated))"
+        text += "\n\(quickNoteDateFormatter.string(from: note.dateCreated).uppercased())"
         text += "\n\n\(note.body)"
-        text += "\n\nModified: \(quickNoteDateFormatter.string(from: note.dateModified))"
+        text += "\n\nModified: \(quickNoteDateFormatter.string(from: note.dateModified).uppercased())"
         return text
     }
 }
