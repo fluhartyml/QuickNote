@@ -44,7 +44,7 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("QuickNote")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationSplitViewColumnWidth(min: 280, ideal: 320)
 #if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
