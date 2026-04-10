@@ -12,6 +12,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Note.dateCreated, order: .reverse) private var notes: [Note]
     @State private var selectedNote: Note?
+    @State private var showingContact = false
 
     var body: some View {
         NavigationSplitView {
@@ -47,8 +48,14 @@ struct ContentView: View {
 #if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    EditButton()
+                    HStack {
+                        EditButton()
+                            .font(.system(size: 18))
+                        Button(action: { showingContact = true }) {
+                            Label("Contact", systemImage: "envelope")
+                        }
                         .font(.system(size: 18))
+                    }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: addNote) {
@@ -74,6 +81,9 @@ struct ContentView: View {
                     .font(.system(size: 18))
                     .foregroundStyle(.secondary)
             }
+        }
+        .sheet(isPresented: $showingContact) {
+            ContactDeveloperView()
         }
     }
 

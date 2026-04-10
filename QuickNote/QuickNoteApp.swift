@@ -25,7 +25,16 @@ struct QuickNoteApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TabView {
+                ContentView()
+                    .tabItem {
+                        Label("Notes", systemImage: "note.text")
+                    }
+                LearnView()
+                    .tabItem {
+                        Label("Under the Hood", systemImage: "wrench.and.screwdriver")
+                    }
+            }
         }
         .modelContainer(sharedModelContainer)
     }
