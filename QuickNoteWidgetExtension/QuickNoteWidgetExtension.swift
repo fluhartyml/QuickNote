@@ -7,49 +7,90 @@
 
 import WidgetKit
 import SwiftUI
+import SwiftData
 
-struct Provider: AppIntentTimelineProvider {
-    func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: ConfigurationAppIntent())
+struct Provider: TimelineProvider {
+    func placeholder(in context: Context) -> NoteEntry {
+        NoteEntry(date: .now, notes: [
+            (title: "Sample Note", dateCreated: .now)
+        ])
     }
 
-    func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: configuration)
+    func getSnapshot(in context: Context, completion: @escaping (NoteEntry) -> Void) {
+        completion(fetchEntry())
     }
-    
-    func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
-        var entries: [SimpleEntry] = []
 
-        // Generate a timeline consisting of five entries an hour apart, starting from the current date.
-        let currentDate = Date()
-        for hourOffset in 0 ..< 5 {
-            let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset, to: currentDate)!
-            let entry = SimpleEntry(date: entryDate, configuration: configuration)
-            entries.append(entry)
+    func getTimeline(in context: Context, completion: @escaping (Timeline<NoteEntry>) -> Void) {
+        let entry = fetchEntry()
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: .now)!
+        completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
+    }
+
+    private func fetchEntry() -> NoteEntry {
+        do {
+            let groupURL = FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: "group.com.ClaudeX26Bible.QuickNote"
+            )!.appending(path: "default.store")
+            let config = ModelConfiguration("QuickNote", schema: Schema([Note.self]), url: groupURL)
+            let container = try ModelContainer(for: Note.self, configurations: config)
+            let context = ModelContext(container)
+            let descriptor = FetchDescriptor<Note>(sortBy: [SortDescriptor(\.dateCreated, order: .reverse)])
+            let notes = try context.fetch(descriptor)
+            let topNotes = notes.prefix(3).map {
+                (title: $0.title.isEmpty ? "Untitled" : $0.title, dateCreated: $0.dateCreated)
+            }
+            return NoteEntry(date: .now, notes: Array(topNotes))
+        } catch {
+            return NoteEntry(date: .now, notes: [])
         }
-
-        return Timeline(entries: entries, policy: .atEnd)
     }
-
-//    func relevances() async -> WidgetRelevances<ConfigurationAppIntent> {
-//        // Generate a list containing the contexts this widget is relevant in.
-//    }
 }
 
-struct SimpleEntry: TimelineEntry {
+struct NoteEntry: TimelineEntry {
     let date: Date
-    let configuration: ConfigurationAppIntent
+    let notes: [(title: String, dateCreated: Date)]
 }
 
-struct QuickNoteWidgetExtensionEntryView : View {
-    var entry: Provider.Entry
+struct QuickNoteWidgetEntryView: View {
+    var entry: NoteEntry
+    @Environment(\.widgetFamily) var family
+
+    private let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM dd HHmm"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
 
     var body: some View {
-        Text("Time:")
-        Text(entry.date, style: .time)
-
-        Text("Favorite Emoji:")
-        Text(entry.configuration.favoriteEmoji)
+        if entry.notes.isEmpty {
+            VStack(spacing: 8) {
+                Image(systemName: "note.text")
+                    .font(.system(size: 24))
+                    .foregroundStyle(.secondary)
+                Text("No Notes")
+                    .font(.system(size: 16))
+                    .foregroundStyle(.secondary)
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(Array(entry.notes.enumerated()), id: \.offset) { _, note in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(note.title)
+                            .font(.system(size: 16, weight: .semibold))
+                            .lineLimit(1)
+                        Text(dateFormatter.string(from: note.dateCreated).uppercased())
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                    if family != .systemSmall {
+                        Divider()
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 4)
+        }
     }
 }
 
@@ -57,30 +98,18 @@ struct QuickNoteWidgetExtension: Widget {
     let kind: String = "QuickNoteWidgetExtension"
 
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: Provider()) { entry in
-            QuickNoteWidgetExtensionEntryView(entry: entry)
+        StaticConfiguration(kind: kind, provider: Provider()) { entry in
+            QuickNoteWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-    }
-}
-
-extension ConfigurationAppIntent {
-    fileprivate static var smiley: ConfigurationAppIntent {
-        let intent = ConfigurationAppIntent()
-        intent.favoriteEmoji = "😀"
-        return intent
-    }
-    
-    fileprivate static var starEyes: ConfigurationAppIntent {
-        let intent = ConfigurationAppIntent()
-        intent.favoriteEmoji = "🤩"
-        return intent
+        .configurationDisplayName("Recent Notes")
+        .description("Shows your most recent notes.")
+        .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
 
 #Preview(as: .systemSmall) {
     QuickNoteWidgetExtension()
 } timeline: {
-    SimpleEntry(date: .now, configuration: .smiley)
-    SimpleEntry(date: .now, configuration: .starEyes)
+    NoteEntry(date: .now, notes: [(title: "My First Note", dateCreated: .now)])
 }

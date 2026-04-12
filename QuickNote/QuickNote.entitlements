@@ -12,5 +12,9 @@
 	<array>
 		<string>CloudKit</string>
 	</array>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.ClaudeX26Bible.QuickNote</string>
+	</array>
 </dict>
 </plist>
