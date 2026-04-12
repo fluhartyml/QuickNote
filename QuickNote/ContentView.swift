@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import WidgetKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -92,6 +93,7 @@ struct ContentView: View {
             let note = Note()
             modelContext.insert(note)
             selectedNote = note
+            WidgetCenter.shared.reloadAllTimelines()
         }
     }
 
@@ -100,6 +102,7 @@ struct ContentView: View {
             for index in offsets {
                 modelContext.delete(notes[index])
             }
+            WidgetCenter.shared.reloadAllTimelines()
         }
     }
 }

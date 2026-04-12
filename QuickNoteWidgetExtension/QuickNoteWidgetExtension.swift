@@ -27,11 +27,14 @@ struct Provider: TimelineProvider {
     }
 
     private func fetchEntry() -> NoteEntry {
+        guard let groupURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: "group.com.ClaudeX26Bible.QuickNote"
+        ) else {
+            return NoteEntry(date: .now, notes: [])
+        }
+        let storeURL = groupURL.appending(path: "default.store")
         do {
-            let groupURL = FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: "group.com.ClaudeX26Bible.QuickNote"
-            )!.appending(path: "default.store")
-            let config = ModelConfiguration("QuickNote", schema: Schema([Note.self]), url: groupURL)
+            let config = ModelConfiguration(url: storeURL)
             let container = try ModelContainer(for: Note.self, configurations: config)
             let context = ModelContext(container)
             let descriptor = FetchDescriptor<Note>(sortBy: [SortDescriptor(\.dateCreated, order: .reverse)])

@@ -17,7 +17,7 @@ struct QuickNoteApp: App {
         let groupURL = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: "group.com.ClaudeX26Bible.QuickNote"
         )!.appending(path: "default.store")
-        let modelConfiguration = ModelConfiguration("QuickNote", schema: schema, url: groupURL)
+        let modelConfiguration = ModelConfiguration(schema: schema, url: groupURL)
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
