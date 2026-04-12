@@ -6,5 +6,7 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>QuickNote uses the camera to capture photos and scan documents for your notes.</string>
 </dict>
 </plist>

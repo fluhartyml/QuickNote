@@ -14,11 +14,13 @@ final class Note {
     var dateCreated: Date
     var body: String
     var dateModified: Date
+    @Attribute(.externalStorage) var imageData: [Data]
 
-    init(title: String = "", dateCreated: Date = .now, body: String = "", dateModified: Date = .now) {
+    init(title: String = "", dateCreated: Date = .now, body: String = "", dateModified: Date = .now, imageData: [Data] = []) {
         self.title = title
         self.dateCreated = dateCreated
         self.body = body
         self.dateModified = dateModified
+        self.imageData = imageData
     }
 }
