@@ -38,16 +38,6 @@ struct NoteDetailView: View {
                     note.dateModified = .now
                 }
 
-                // Body
-                TextEditor(text: $note.body)
-                    .font(.system(size: 18))
-                    .frame(minHeight: 200)
-                    .scrollContentBackground(.hidden)
-                    .onChange(of: note.body) {
-                        note.dateModified = .now
-                        WidgetCenter.shared.reloadAllTimelines()
-                    }
-
                 // Photo/Camera buttons
                 HStack(spacing: 16) {
                     PhotosPicker(
@@ -109,6 +99,16 @@ struct NoteDetailView: View {
                         }
                     }
                 }
+
+                // Body
+                TextEditor(text: $note.body)
+                    .font(.system(size: 18))
+                    .frame(minHeight: 200)
+                    .scrollContentBackground(.hidden)
+                    .onChange(of: note.body) {
+                        note.dateModified = .now
+                        WidgetCenter.shared.reloadAllTimelines()
+                    }
 
                 Spacer()
 
