@@ -10,6 +10,8 @@ import SwiftUI
 import SwiftData
 
 struct Provider: TimelineProvider {
+    let modelContainer: ModelContainer
+
     func placeholder(in context: Context) -> NoteEntry {
         NoteEntry(date: .now, notes: [
             (title: "Sample Note", dateCreated: .now)
@@ -27,13 +29,9 @@ struct Provider: TimelineProvider {
     }
 
     private func fetchEntry() -> NoteEntry {
+        let context = ModelContext(modelContainer)
+        let descriptor = FetchDescriptor<Note>(sortBy: [SortDescriptor(\.dateCreated, order: .reverse)])
         do {
-            let config = ModelConfiguration(
-                groupContainer: .identifier("group.com.ClaudeX26Bible.QuickNote")
-            )
-            let container = try ModelContainer(for: Note.self, configurations: config)
-            let context = ModelContext(container)
-            let descriptor = FetchDescriptor<Note>(sortBy: [SortDescriptor(\.dateCreated, order: .reverse)])
             let notes = try context.fetch(descriptor)
             let topNotes = notes.prefix(3).map {
                 (title: $0.title.isEmpty ? "Untitled" : $0.title, dateCreated: $0.dateCreated)
@@ -96,8 +94,19 @@ struct QuickNoteWidgetEntryView: View {
 struct QuickNoteWidgetExtension: Widget {
     let kind: String = "QuickNoteWidgetExtension"
 
+    private let modelContainer: ModelContainer = {
+        let config = ModelConfiguration(
+            groupContainer: .identifier("group.com.ClaudeX26Bible.QuickNote")
+        )
+        do {
+            return try ModelContainer(for: Note.self, configurations: config)
+        } catch {
+            fatalError("Widget ModelContainer failed: \(error)")
+        }
+    }()
+
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: Provider()) { entry in
+        StaticConfiguration(kind: kind, provider: Provider(modelContainer: modelContainer)) { entry in
             QuickNoteWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
