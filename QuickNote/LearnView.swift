@@ -56,19 +56,33 @@ struct LearnView: View {
 
 struct SourceCodeDetailView: View {
     let file: SourceFile
+    @State private var copied = false
 
     var body: some View {
-        ScrollView(.horizontal) {
-            ScrollView(.vertical) {
-                Text(file.code)
-                    .font(.system(size: 16, design: .monospaced))
-                    .textSelection(.enabled)
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+        ScrollView([.horizontal, .vertical]) {
+            Text(file.code)
+                .font(.system(size: 16, design: .monospaced))
+                .fixedSize(horizontal: true, vertical: false)
+                .textSelection(.enabled)
+                .padding()
+                .frame(minWidth: 0, alignment: .leading)
         }
         .navigationTitle(file.name)
         .toolbar {
+            #if os(iOS)
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    UIPasteboard.general.string = file.code
+                    copied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        copied = false
+                    }
+                } label: {
+                    Label(copied ? "Copied" : "Copy", systemImage: copied ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 18))
+                }
+            }
+            #endif
             ToolbarItem(placement: .automatic) {
                 ShareLink(item: file.code) {
                     Label("Share", systemImage: "square.and.arrow.up")

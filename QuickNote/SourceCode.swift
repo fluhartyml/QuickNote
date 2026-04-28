@@ -4,9 +4,9 @@
 //
 //  Created by Michael Fluharty on 4/10/26.
 //
-//  Embedded source code for the Learn tab.
+//  Embedded source code for the Under the Hood tab.
 //  Each static property contains the source of a Swift file
-//  as it shipped in v1.1. Pop the hood, see the engine.
+//  as it shipped in v1.2. Pop the hood, see the engine.
 //  For the full walkthrough, see Claude's Xcode 26 Swift Bible.
 //
 
@@ -22,13 +22,16 @@ enum SourceCode {
         var dateCreated: Date
         var body: String
         var dateModified: Date
+        @Attribute(.externalStorage) var imageData: [Data]
 
         init(title: String = "", dateCreated: Date = .now,
-             body: String = "", dateModified: Date = .now) {
+             body: String = "", dateModified: Date = .now,
+             imageData: [Data] = []) {
             self.title = title
             self.dateCreated = dateCreated
             self.body = body
             self.dateModified = dateModified
+            self.imageData = imageData
         }
     }
     """
@@ -42,7 +45,10 @@ enum SourceCode {
         var sharedModelContainer: ModelContainer = {
             let schema = Schema([Note.self])
             let config = ModelConfiguration(
-                schema: schema, isStoredInMemoryOnly: false
+                schema: schema,
+                groupContainer: .identifier(
+                    "group.com.ClaudeX26Bible.QuickNote"
+                )
             )
             do {
                 return try ModelContainer(
@@ -75,12 +81,14 @@ enum SourceCode {
     static let contentView = """
     import SwiftUI
     import SwiftData
+    import WidgetKit
 
     struct ContentView: View {
         @Environment(\\.modelContext) private var modelContext
         @Query(sort: \\Note.dateCreated, order: .reverse)
         private var notes: [Note]
         @State private var selectedNote: Note?
+        @State private var showingContact = false
 
         var body: some View {
             NavigationSplitView {
@@ -119,13 +127,17 @@ enum SourceCode {
                     }
                 }
                 .navigationTitle("QuickNote")
-                .navigationSplitViewColumnWidth(
-                    min: 350, ideal: 380
-                )
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
-                        EditButton()
+                        HStack {
+                            EditButton()
+                                .font(.system(size: 18))
+                            Button(action: { showingContact = true }) {
+                                Label("Contact",
+                                      systemImage: "envelope")
+                            }
                             .font(.system(size: 18))
+                        }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: addNote) {
@@ -143,6 +155,9 @@ enum SourceCode {
                         .foregroundStyle(.secondary)
                 }
             }
+            .sheet(isPresented: $showingContact) {
+                ContactDeveloperView()
+            }
         }
 
         private func addNote() {
@@ -150,6 +165,7 @@ enum SourceCode {
                 let note = Note()
                 modelContext.insert(note)
                 selectedNote = note
+                WidgetCenter.shared.reloadAllTimelines()
             }
         }
 
@@ -158,6 +174,7 @@ enum SourceCode {
                 for index in offsets {
                     modelContext.delete(notes[index])
                 }
+                WidgetCenter.shared.reloadAllTimelines()
             }
         }
     }
@@ -173,9 +190,13 @@ enum SourceCode {
     static let noteDetailView = """
     import SwiftUI
     import SwiftData
+    import PhotosUI
+    import WidgetKit
 
     struct NoteDetailView: View {
         @Bindable var note: Note
+        @State private var selectedPhotos: [PhotosPickerItem] = []
+        @State private var showCamera = false
 
         var body: some View {
             ScrollView {
@@ -184,6 +205,7 @@ enum SourceCode {
                         .font(.system(size: 24, weight: .bold))
                         .onChange(of: note.title) {
                             note.dateModified = .now
+                            WidgetCenter.shared.reloadAllTimelines()
                         }
 
                     DatePicker(
@@ -193,8 +215,79 @@ enum SourceCode {
                     )
                     .font(.system(size: 20))
                     .foregroundStyle(.secondary)
-                    .onChange(of: note.dateCreated) {
-                        note.dateModified = .now
+
+                    // Photo/Camera buttons
+                    HStack(spacing: 16) {
+                        PhotosPicker(
+                            selection: $selectedPhotos,
+                            maxSelectionCount: 10,
+                            matching: .images
+                        ) {
+                            Label("Photos",
+                                  systemImage: "photo.on.rectangle")
+                                .font(.system(size: 18, weight: .medium))
+                        }
+
+                        Button {
+                            showCamera = true
+                        } label: {
+                            Label("Camera", systemImage: "camera")
+                                .font(.system(size: 18, weight: .medium))
+                        }
+                    }
+                    .onChange(of: selectedPhotos) {
+                        Task {
+                            for item in selectedPhotos {
+                                if let data = try? await item
+                                    .loadTransferable(type: Data.self) {
+                                    note.imageData.append(data)
+                                }
+                            }
+                            selectedPhotos = []
+                            note.dateModified = .now
+                        }
+                    }
+
+                    // Attached images
+                    if !note.imageData.isEmpty {
+                        Text("Attachments (\\(note.imageData.count))")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.secondary)
+
+                        LazyVGrid(
+                            columns: [GridItem(.adaptive(minimum: 150))],
+                            spacing: 12
+                        ) {
+                            ForEach(
+                                Array(note.imageData.enumerated()),
+                                id: \\.offset
+                            ) { index, data in
+                                if let uiImage = UIImage(data: data) {
+                                    ZStack(alignment: .topTrailing) {
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .aspectRatio(
+                                                contentMode: .fill)
+                                            .frame(minHeight: 120)
+                                            .clipped()
+                                            .cornerRadius(8)
+
+                                        Button {
+                                            note.imageData
+                                                .remove(at: index)
+                                            note.dateModified = .now
+                                        } label: {
+                                            Image(systemName:
+                                                "xmark.circle.fill")
+                                                .font(.system(size: 22))
+                                                .foregroundStyle(
+                                                    .white, .red)
+                                        }
+                                        .padding(4)
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     TextEditor(text: $note.body)
@@ -203,6 +296,7 @@ enum SourceCode {
                         .scrollContentBackground(.hidden)
                         .onChange(of: note.body) {
                             note.dateModified = .now
+                            WidgetCenter.shared.reloadAllTimelines()
                         }
 
                     Spacer()
@@ -220,6 +314,15 @@ enum SourceCode {
                     ShareLink(item: shareText)
                 }
             }
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraView { image in
+                    if let data = image.jpegData(
+                        compressionQuality: 0.8) {
+                        note.imageData.append(data)
+                        note.dateModified = .now
+                    }
+                }
+            }
         }
 
         private var shareText: String {
@@ -227,9 +330,63 @@ enum SourceCode {
             text += "\\n\\(quickNoteDateFormatter
                 .string(from: note.dateCreated).uppercased())"
             text += "\\n\\n\\(note.body)"
+            if !note.imageData.isEmpty {
+                text += "\\n\\n[\\(note.imageData.count) photo(s) attached]"
+            }
             text += "\\n\\nModified: \\(quickNoteDateFormatter
                 .string(from: note.dateModified).uppercased())"
             return text
+        }
+    }
+
+    // MARK: - Camera View
+
+    struct CameraView: UIViewControllerRepresentable {
+        var onCapture: (UIImage) -> Void
+        @Environment(\\.dismiss) private var dismiss
+
+        func makeUIViewController(context: Context)
+            -> UIImagePickerController {
+            let picker = UIImagePickerController()
+            picker.sourceType = .camera
+            picker.delegate = context.coordinator
+            return picker
+        }
+
+        func updateUIViewController(
+            _ uiViewController: UIImagePickerController,
+            context: Context) {}
+
+        func makeCoordinator() -> Coordinator {
+            Coordinator(onCapture: onCapture, dismiss: dismiss)
+        }
+
+        class Coordinator: NSObject,
+            UIImagePickerControllerDelegate,
+            UINavigationControllerDelegate {
+            let onCapture: (UIImage) -> Void
+            let dismiss: DismissAction
+
+            init(onCapture: @escaping (UIImage) -> Void,
+                 dismiss: DismissAction) {
+                self.onCapture = onCapture
+                self.dismiss = dismiss
+            }
+
+            func imagePickerController(
+                _ picker: UIImagePickerController,
+                didFinishPickingMediaWithInfo info:
+                    [UIImagePickerController.InfoKey: Any]) {
+                if let image = info[.originalImage] as? UIImage {
+                    onCapture(image)
+                }
+                dismiss()
+            }
+
+            func imagePickerControllerDidCancel(
+                _ picker: UIImagePickerController) {
+                dismiss()
+            }
         }
     }
     """
@@ -291,11 +448,15 @@ enum SourceCode {
                     }
                 }
                 .navigationTitle("Contact Developer")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { dismiss() }
+                    }
+                }
             }
         }
 
         private func sendFeedback() {
-            // Composes mailto: URL and opens Mail
             let subject = "QuickNote by Claude Feedback"
             let body = feedbackText
                 + "\\n\\n--- Device Info ---"
@@ -343,6 +504,8 @@ enum SourceCode {
                        code: SourceCode.contentView),
             SourceFile(name: "NoteDetailView.swift",
                        code: SourceCode.noteDetailView),
+            SourceFile(name: "ContactDeveloperView.swift",
+                       code: SourceCode.contactDeveloperView),
             SourceFile(name: "LearnView.swift",
                        code: SourceCode.learnView),
         ]
@@ -367,11 +530,6 @@ enum SourceCode {
                         Text("Select a file to view its source code")
                             .font(.system(size: 18))
                             .foregroundStyle(.secondary)
-                        Text("For the full walkthrough, see "
-                             + "Claude's Xcode 26 Swift Bible")
-                            .font(.system(size: 18, weight: .light)
-                                .italic())
-                            .foregroundStyle(.tertiary)
                     }
                 }
             }
@@ -380,20 +538,33 @@ enum SourceCode {
 
     struct SourceCodeDetailView: View {
         let file: SourceFile
+        @State private var copied = false
 
         var body: some View {
-            ScrollView(.horizontal) {
-                ScrollView(.vertical) {
-                    Text(file.code)
-                        .font(.system(size: 16, design: .monospaced))
-                        .textSelection(.enabled)
-                        .padding()
-                        .frame(maxWidth: .infinity,
-                               alignment: .leading)
-                }
+            ScrollView([.horizontal, .vertical]) {
+                Text(file.code)
+                    .font(.system(size: 16, design: .monospaced))
+                    .fixedSize(horizontal: true, vertical: false)
+                    .textSelection(.enabled)
+                    .padding()
+                    .frame(minWidth: 0, alignment: .leading)
             }
             .navigationTitle(file.name)
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        UIPasteboard.general.string = file.code
+                        copied = true
+                        DispatchQueue.main.asyncAfter(
+                            deadline: .now() + 1.5) {
+                            copied = false
+                        }
+                    } label: {
+                        Label(copied ? "Copied" : "Copy",
+                              systemImage: copied
+                                ? "checkmark" : "doc.on.doc")
+                    }
+                }
                 ToolbarItem(placement: .automatic) {
                     ShareLink(item: file.code) {
                         Label("Share",
