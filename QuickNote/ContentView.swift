@@ -44,7 +44,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .navigationTitle("QuickNote")
+            .navigationTitle("Notes")
             .navigationSplitViewColumnWidth(min: 350, ideal: 380)
 #if os(iOS)
             .toolbar {

@@ -42,7 +42,7 @@ struct ContactDeveloperView: View {
 
                 Section("Device Info") {
                     LabeledContent("App") {
-                        Text("QuickNote by Claude v\(appVersion)")
+                        Text("Claudes Quick Notes v\(appVersion)")
                             .font(.system(size: 16))
                     }
                     .font(.system(size: 18))
@@ -91,12 +91,12 @@ struct ContactDeveloperView: View {
     }
 
     private func sendFeedback() {
-        let subject = "QuickNote by Claude Feedback"
+        let subject = "Claudes Quick Notes Feedback"
         let body = """
         \(feedbackText)
 
         --- Device Info ---
-        App: QuickNote by Claude v\(appVersion)
+        App: Claudes Quick Notes v\(appVersion)
         Device: \(deviceInfo)
         """
 
